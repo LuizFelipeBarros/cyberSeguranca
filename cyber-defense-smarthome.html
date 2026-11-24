@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cyber Defense: Smart Home</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --cyber-bg: #040d1a;
+      --cyber-panel: #071428;
+      --cyber-card: #0a1f3a;
+      --cyber-border: #0e3a6e;
+      --cyber-cyan: #00e5ff;
+      --cyber-blue: #1565c0;
+      --cyber-amber: #ffab00;
+      --cyber-red: #ff1744;
+      --cyber-green: #00e676;
+      --cyber-muted: #546e8a;
+      --cyber-text: #cce4f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--cyber-bg);
+      color: var(--cyber-text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      margin: 0; padding: 0;
+      min-height: 100vh;
+    }
+
+    /* ---- Scanline overlay ---- */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,229,255,0.015) 2px,
+        rgba(0,229,255,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ---- Glow effects ---- */
+    .glow-cyan { box-shadow: 0 0 12px rgba(0,229,255,0.4), 0 0 30px rgba(0,229,255,0.15); }
+    .glow-amber { box-shadow: 0 0 12px rgba(255,171,0,0.5), 0 0 30px rgba(255,171,0,0.2); }
+    .glow-red   { box-shadow: 0 0 12px rgba(255,23,68,0.5),  0 0 30px rgba(255,23,68,0.2); }
+    .glow-green { box-shadow: 0 0 12px rgba(0,230,118,0.4), 0 0 30px rgba(0,230,118,0.15); }
+    .text-cyan  { color: var(--cyber-cyan); }
+    .text-amber { color: var(--cyber-amber); }
+    .text-red   { color: var(--cyber-red); }
+    .text-green { color: var(--cyber-green); }
+    .text-muted { color: var(--cyber-muted); }
+
+    /* ---- Nav ---- */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(4,13,26,0.95);
+      border-bottom: 1px solid var(--cyber-border);
+      backdrop-filter: blur(10px);
+    }
+    .nav-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 20px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none; background: transparent;
+      color: var(--cyber-muted); transition: all 0.3s ease;
+      border-bottom: 2px solid transparent; letter-spacing: 0.05em;
+    }
+    .nav-btn:hover { color: var(--cyber-cyan); }
+    .nav-btn.active {
+      color: var(--cyber-cyan);
+      border-bottom-color: var(--cyber-cyan);
+      text-shadow: 0 0 8px var(--cyber-cyan);
+    }
+
+    /* ---- Section ---- */
+    section { display: none; padding: 24px 20px; max-width: 1100px; margin: 0 auto; }
+    section.active { display: block; }
+
+    /* ---- Cards ---- */
+    .card {
+      background: var(--cyber-card);
+      border: 1px solid var(--cyber-border);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+    .card:hover { border-color: rgba(0,229,255,0.4); }
+
+    /* ---- Device grid ---- */
+    .device-btn {
+      background: var(--cyber-panel);
+      border: 1px solid var(--cyber-border);
+      border-radius: 12px;
+      padding: 20px 14px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .device-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(0,229,255,0.07) 0%, transparent 70%);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .device-btn:hover::before { opacity: 1; }
+    .device-btn:hover {
+      border-color: var(--cyber-cyan);
+      transform: translateY(-3px);
+    }
+    .device-btn.selected {
+      border-color: var(--cyber-cyan);
+      background: #0a2040;
+    }
+    .device-btn.selected::before { opacity: 1; }
+    .device-icon {
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+    }
+
+    /* ---- Vulnerability card ---- */
+    .vuln-card {
+      background: linear-gradient(135deg, #071428, #0a2040);
+      border: 1px solid var(--cyber-border);
+      border-left: 3px solid var(--cyber-cyan);
+      border-radius: 12px;
+      padding: 24px;
+      animation: slideIn 0.35s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .vuln-tag {
+      display: inline-block;
+      padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      margin: 3px 2px;
+    }
+    .tag-critical { background: rgba(255,23,68,0.15); color: var(--cyber-red); border: 1px solid rgba(255,23,68,0.4); }
+    .tag-high     { background: rgba(255,171,0,0.12); color: var(--cyber-amber); border: 1px solid rgba(255,171,0,0.4); }
+    .tag-medium   { background: rgba(0,229,255,0.1);  color: var(--cyber-cyan);  border: 1px solid rgba(0,229,255,0.3); }
+
+    /* ---- Attack flow ---- */
+    .attack-btn {
+      background: var(--cyber-panel);
+      border: 1px solid var(--cyber-border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: flex; align-items: center; gap: 12px;
+      text-align: left;
+    }
+    .attack-btn:hover { border-color: var(--cyber-amber); background: #0d1e36; }
+    .attack-btn.selected { border-color: var(--cyber-amber); background: #1a1200; }
+    .attack-btn.selected .attack-icon { background: rgba(255,171,0,0.2); }
+
+    .flow-node {
+      background: var(--cyber-panel);
+      border: 1px solid var(--cyber-border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+      position: relative;
+      flex: 1;
+    }
+    .flow-arrow {
+      display: flex; align-items: center; color: var(--cyber-amber);
+      font-size: 20px; padding: 0 4px;
+    }
+    .alert-box {
+      background: rgba(255,23,68,0.08);
+      border: 1px solid rgba(255,23,68,0.3);
+      border-radius: 10px;
+      padding: 14px 18px;
+    }
+    .flow-animate .flow-node {
+      animation: nodePulse 0.5s ease forwards;
+    }
+    @keyframes nodePulse {
+      0%   { opacity: 0; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .flow-animate .flow-node:nth-child(1) { animation-delay: 0.0s; }
+    .flow-animate .flow-node:nth-child(3) { animation-delay: 0.2s; }
+    .flow-animate .flow-node:nth-child(5) { animation-delay: 0.4s; }
+
+    /* ---- Security Score ---- */
+    .score-ring {
+      position: relative;
+      width: 140px; height: 140px;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-label {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-weight: 800;
+    }
+
+    /* ---- Checklist ---- */
+    .check-item {
+      background: var(--cyber-panel);
+      border: 1px solid var(--cyber-border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: flex; align-items: center; gap: 14px;
+      user-select: none;
+    }
+    .check-item:hover { border-color: rgba(0,230,118,0.4); }
+    .check-item.checked {
+      border-color: var(--cyber-green);
+      background: rgba(0,230,118,0.05);
+    }
+    .check-box {
+      width: 24px; height: 24px; border-radius: 6px;
+      border: 2px solid var(--cyber-muted);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .check-item.checked .check-box {
+      background: var(--cyber-green);
+      border-color: var(--cyber-green);
+    }
+
+    /* ---- Score bar ---- */
+    .score-bar-track {
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(0.4,0,0.2,1), background 0.6s;
+    }
+
+    /* ---- Header gradient ---- */
+    .hero-title {
+      background: linear-gradient(135deg, var(--cyber-cyan) 0%, #4fc3f7 50%, var(--cyber-cyan) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .section-title {
+      background: linear-gradient(90deg, var(--cyber-cyan), #4fc3f7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ---- Pulse dot ---- */
+    .pulse-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* ---- Badge ---- */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+    .badge-cyan  { background: rgba(0,229,255,0.12); color: var(--cyber-cyan); border: 1px solid rgba(0,229,255,0.3); }
+    .badge-amber { background: rgba(255,171,0,0.12); color: var(--cyber-amber); border: 1px solid rgba(255,171,0,0.3); }
+    .badge-red   { background: rgba(255,23,68,0.12);  color: var(--cyber-red);   border: 1px solid rgba(255,23,68,0.3); }
+    .badge-green { background: rgba(0,230,118,0.12); color: var(--cyber-green); border: 1px solid rgba(0,230,118,0.3); }
+
+    /* Progress tracker */
+    .progress-tracker {
+      display: flex; align-items: center; gap: 0;
+    }
+    .progress-step {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--cyber-muted);
+      font-weight: 600;
+    }
+    .progress-step.active { color: var(--cyber-cyan); }
+    .progress-step.done { color: var(--cyber-green); }
+    .progress-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid var(--cyber-muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; transition: all 0.3s;
+    }
+    .progress-step.active .progress-dot {
+      border-color: var(--cyber-cyan); color: var(--cyber-cyan);
+      box-shadow: 0 0 10px rgba(0,229,255,0.4);
+    }
+    .progress-step.done .progress-dot {
+      background: var(--cyber-green); border-color: var(--cyber-green); color: #000;
+    }
+    .progress-line {
+      flex: 1; height: 2px;
+      background: var(--cyber-muted);
+      margin: 0 8px; min-width: 20px;
+    }
+
+    /* Scroll smooth */
+    html { scroll-behavior: smooth; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .device-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .attack-flow { flex-direction: column !important; }
+      .flow-arrow  { transform: rotate(90deg); }
+      nav { overflow-x: auto; }
+      .nav-btn { font-size: 11px; padding: 10px 12px; }
+    }
+
+    /* ---- Tooltip ---- */
+    .tooltip-wrap { position: relative; display: inline-block; }
+    .tooltip-box {
+      display: none; position: absolute; bottom: 110%; left: 50%;
+      transform: translateX(-50%);
+      background: #0a1f3a; border: 1px solid var(--cyber-cyan);
+      border-radius: 8px; padding: 8px 12px; white-space: nowrap;
+      font-size: 12px; color: var(--cyber-cyan); z-index: 200;
+    }
+    .tooltip-wrap:hover .tooltip-box { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════ HEADER ══════════════════════ -->
+<header style="background: linear-gradient(180deg, #030b17 0%, var(--cyber-bg) 100%); border-bottom: 1px solid var(--cyber-border); padding: 20px;">
+  <div style="max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #0e3a6e, #001d3d); border: 1px solid var(--cyber-cyan); display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="hero-title" style="font-size: 20px; font-weight: 800; letter-spacing: 0.08em;">CYBER DEFENSE</div>
+        <div style="font-size: 11px; color: var(--cyber-muted); letter-spacing: 0.12em;">PROTEJA SUA SMART HOME · v2.0</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="pulse-dot" style="background: var(--cyber-green);"></div>
+      <span style="font-size: 12px; color: var(--cyber-green); font-weight: 600;">SISTEMA ATIVO</span>
+      <div id="headerScore" class="badge badge-cyan" style="margin-left: 10px;">Score: 0%</div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════ NAV ══════════════════════ -->
+<nav>
+  <div style="max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 0; overflow-x: auto;">
+    <button class="nav-btn active" onclick="showSection('s1', this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Mapa da Casa
+    </button>
+    <button class="nav-btn" onclick="showSection('s2', this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Simulador de Ataques
+    </button>
+    <button class="nav-btn" onclick="showSection('s3', this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Construtor de Defesa
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════ SECTION 1 — MAPA ══════════════════════ -->
+<section id="s1" class="active">
+  <div style="margin-bottom: 24px;">
+    <div class="section-title" style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">🏠 Mapa de Vulnerabilidades da Smart Home</div>
+    <p style="color: var(--cyber-muted); font-size: 14px; margin: 0;">Clique em cada dispositivo para revelar suas principais falhas de segurança e vetores de ataque.</p>
+  </div>
+
+  <!-- Device Grid -->
+  <div class="device-grid" id="deviceGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px;">
+  </div>
+
+  <!-- Vulnerability Detail Panel -->
+  <div id="vulnPanel" style="display:none;">
+  </div>
+</section>
+
+<!-- ══════════════════════ SECTION 2 — ATAQUES ══════════════════════ -->
+<section id="s2">
+  <div style="margin-bottom: 24px;">
+    <div class="section-title" style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">⚠️ Simulador de Vetores de Ataque</div>
+    <p style="color: var(--cyber-muted); font-size: 14px; margin: 0;">Selecione uma ameaça para visualizar o fluxo completo do ataque e os sinais de alerta.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 320px 1fr; gap: 20px;" id="attackLayout">
+    <!-- Attack list -->
+    <div>
+      <div style="font-size: 11px; color: var(--cyber-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 12px;">CATÁLOGO DE AMEAÇAS</div>
+      <div id="attackList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+    <!-- Attack detail -->
+    <div id="attackDetail" style="display: flex; flex-direction: column; gap: 16px;"></div>
+  </div>
+
+  <style>
+    @media (max-width: 700px) {
+      #attackLayout { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</section>
+
+<!-- ══════════════════════ SECTION 3 — DEFESA ══════════════════════ -->
+<section id="s3">
+  <div style="margin-bottom: 24px;">
+    <div class="section-title" style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">🛡️ Construtor de Defesa — Security Score</div>
+    <p style="color: var(--cyber-muted); font-size: 14px; margin: 0;">Ative as contramedidas e observe seu nível de segurança crescer em tempo real.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 280px; gap: 24px;" id="defenseLayout">
+    <!-- Checklist -->
+    <div>
+      <div style="font-size: 11px; color: var(--cyber-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 14px;">CONTRAMEDIDAS DE SEGURANÇA</div>
+      <div id="checkList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+
+    <!-- Score panel -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <!-- Ring -->
+      <div class="card" style="padding: 24px; text-align: center;">
+        <div style="font-size: 11px; color: var(--cyber-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 16px;">SECURITY SCORE</div>
+        <div style="display: flex; justify-content: center; margin-bottom: 16px;">
+          <div class="score-ring">
+            <svg width="140" height="140" viewBox="0 0 140 140">
+              <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12"/>
+              <circle id="scoreCircle" cx="70" cy="70" r="58" fill="none" stroke="#00e5ff" stroke-width="12"
+                stroke-dasharray="364.42" stroke-dashoffset="364.42"
+                stroke-linecap="round" style="transition: stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1), stroke 0.7s;"/>
+            </svg>
+            <div class="score-label">
+              <div id="scoreNum" style="font-size: 32px; color: var(--cyber-cyan); line-height: 1;">0%</div>
+              <div style="font-size: 11px; color: var(--cyber-muted);">Segurança</div>
+            </div>
+          </div>
+        </div>
+        <!-- Bar -->
+        <div class="score-bar-track" style="margin-bottom: 8px;">
+          <div class="score-bar-fill" id="scoreBar" style="width: 0%; background: var(--cyber-cyan);"></div>
+        </div>
+        <div id="scoreLevelLabel" style="font-size: 13px; font-weight: 700; color: var(--cyber-red); margin-bottom: 8px;">CRÍTICO</div>
+        <div id="scoreDesc" style="font-size: 12px; color: var(--cyber-muted); line-height: 1.5;">Nenhuma medida ativa. Sua rede está totalmente exposta.</div>
+      </div>
+
+      <!-- Last action -->
+      <div class="card" id="lastActionCard" style="padding: 16px; display: none;">
+        <div style="font-size: 10px; color: var(--cyber-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 8px;">ÚLTIMA AÇÃO</div>
+        <div id="lastActionText" style="font-size: 13px; line-height: 1.5;"></div>
+      </div>
+
+      <!-- Tips -->
+      <div class="card" style="padding: 16px;">
+        <div style="font-size: 10px; color: var(--cyber-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 10px;">💡 DICA DO ANALISTA</div>
+        <div id="tipText" style="font-size: 12px; color: var(--cyber-muted); line-height: 1.6;">Comece pelo mais crítico: troque todas as senhas padrão imediatamente.</div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @media (max-width: 700px) {
+      #defenseLayout { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</section>
+
+<!-- ══════════════════════ FOOTER ══════════════════════ -->
+<footer style="border-top: 1px solid var(--cyber-border); padding: 16px 20px; margin-top: 20px; text-align: center;">
+  <div style="max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
+    <div class="pulse-dot" style="background: var(--cyber-cyan);"></div>
+    <span style="font-size: 12px; color: var(--cyber-muted);">Cyber Defense: Proteja sua Smart Home · Infográfico Educacional · 2026</span>
+    <span class="badge badge-cyan">IoT Security Awareness</span>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════
+
+const devices = [
+  {
+    id: 'router',
+    name: 'Roteador Wi-Fi',
+    emoji: '📡',
+    color: '#1565c0',
+    glow: 'rgba(21,101,192,0.5)',
+    riskLevel: 'CRÍTICO',
+    riskColor: 'tag-critical',
+    tags: ['Crítico', 'Gateway Principal'],
+    weaknesses: [
+      { icon: '🔑', title: 'Credenciais Padrão de Fábrica', desc: '80% dos roteadores são deixados com usuário "admin" e senha "admin". Atacantes escaneiam redes em busca dessas combinações sistematicamente.', severity: 'tag-critical' },
+      { icon: '🔓', title: 'Interface Admin Exposta', desc: 'Painel de administração acessível pela internet pública via porta 80/443. Permite acesso remoto não autorizado ao coração da rede.', severity: 'tag-critical' },
+      { icon: '📦', title: 'Firmware Desatualizado', desc: 'CVEs conhecidos não corrigidos permitem execução remota de código (RCE). Fabricantes lançam patches raramente adotados pelos usuários.', severity: 'tag-high' },
+      { icon: '🌐', title: 'UPnP Habilitado', desc: 'Universal Plug and Play abre portas automaticamente sem autenticação, criando túneis exploráveis por malware interno à rede.', severity: 'tag-high' },
+    ]
+  },
+  {
+    id: 'camera',
+    name: 'Câmera IP',
+    emoji: '📷',
+    color: '#c62828',
+    glow: 'rgba(198,40,40,0.5)',
+    riskLevel: 'CRÍTICO',
+    riskColor: 'tag-critical',
+    tags: ['Crítico', 'Privacidade'],
+    weaknesses: [
+      { icon: '👁️', title: 'Senha Padrão Sem Alteração', desc: 'Sites como Shodan indexam dezenas de milhares de câmeras com credenciais padrão. Sua câmera pode estar sendo assistida agora.', severity: 'tag-critical' },
+      { icon: '📡', title: 'Stream RTSP Sem Criptografia', desc: 'Protocolo RTSP transmite vídeo em texto puro pela rede local. Um atacante na mesma rede captura o feed com Wireshark trivialmente.', severity: 'tag-critical' },
+      { icon: '🕳️', title: 'Portas Abertas Desnecessárias', desc: 'Portas 80, 554, 8080 frequentemente expostas. Scanners automatizados identificam e exploram essas câmeras globalmente em minutos.', severity: 'tag-high' },
+      { icon: '☁️', title: 'Armazenamento em Nuvem Sem Criptografia', desc: 'Muitos fabricantes armazenam gravações em servidores sem criptografia de ponta-a-ponta, acessíveis por funcionários ou após vazamentos.', severity: 'tag-medium' },
+    ]
+  },
+  {
+    id: 'lock',
+    name: 'Fechadura Smart',
+    emoji: '🔒',
+    color: '#e65100',
+    glow: 'rgba(230,81,0,0.5)',
+    riskLevel: 'ALTO',
+    riskColor: 'tag-high',
+    tags: ['Alto', 'Acesso Físico'],
+    weaknesses: [
+      { icon: '📶', title: 'Bluetooth LE Não Autenticado', desc: 'Falhas em implementações BLE permitem relay attacks e replay attacks que replicam sinais de abertura sem a chave correta.', severity: 'tag-critical' },
+      { icon: '🔄', title: 'Atualização OTA Sem Assinatura', desc: 'Firmware enviado via OTA sem verificação criptográfica permite injeção de código malicioso que compromete o mecanismo de trava.', severity: 'tag-high' },
+      { icon: '🔁', title: 'Sem Proteção de Replay', desc: 'Captura e reenvio do sinal de abertura Zigbee/Z-Wave permite destravar a porta sem autenticação. Ataque trivial com SDR barato.', severity: 'tag-high' },
+      { icon: '📲', title: 'App Sem MFA', desc: 'Aplicativo de controle sem autenticação multifator expõe a fechadura a ataques de credential stuffing se a senha vazar.', severity: 'tag-medium' },
+    ]
+  },
+  {
+    id: 'assistant',
+    name: 'Assistente de Voz',
+    emoji: '🎙️',
+    color: '#4527a0',
+    glow: 'rgba(69,39,160,0.5)',
+    riskLevel: 'ALTO',
+    riskColor: 'tag-high',
+    tags: ['Alto', 'Privacidade'],
+    weaknesses: [
+      { icon: '🗣️', title: 'Voice Squatting Attack', desc: 'Habilidades/Skills maliciosas imitam nomes de apps legítimos para capturar dados. Ex: "Alexa, abra o Banco Inter" → app falso.', severity: 'tag-critical' },
+      { icon: '🔊', title: 'Comandos de Voz Ultrassônicos', desc: 'Ataques "Dolphin Attack" usam frequências inaudíveis para humanos para emitir comandos. Funciona a distância via alto-falante.', severity: 'tag-high' },
+      { icon: '🎧', title: 'Gravação Contínua Involuntária', desc: 'Dispositivo sempre ativo; falsos positivos na palavra-chave enviam áudio para servidores remotos. Risco de espionagem acidental.', severity: 'tag-medium' },
+      { icon: '🔗', title: 'Integração Excessiva de APIs', desc: 'Permissões amplas a serviços de terceiros criam superfície de ataque em cascata: comprometer um serviço expõe todos os integrados.', severity: 'tag-medium' },
+    ]
+  },
+  {
+    id: 'tv',
+    name: 'Smart TV',
+    emoji: '📺',
+    color: '#00695c',
+    glow: 'rgba(0,105,92,0.5)',
+    riskLevel: 'MÉDIO',
+    riskColor: 'tag-medium',
+    tags: ['Médio', 'Espionagem'],
+    weaknesses: [
+      { icon: '🕵️', title: 'ACR — Reconhecimento Automático', desc: 'Automatic Content Recognition captura screenshots do que você assiste, enviando para servidores de terceiros para análise.', severity: 'tag-high' },
+      { icon: '🎙️', title: 'Microfone Sempre Ativo', desc: 'TVs com controle por voz mantêm microfone ligado. Vários fabricantes já foram multados por capturar conversas domésticas.', severity: 'tag-high' },
+      { icon: '📱', title: 'Apps de Terceiros Não Verificados', desc: 'Lojas de apps de SmartTV têm curadoria mínima. Apps maliciosos podem capturar credenciais de serviços de streaming.', severity: 'tag-medium' },
+      { icon: '🔧', title: 'Sistema Operacional Desatualizado', desc: 'Android TV e Tizen frequentemente sem suporte após 2-3 anos de vida útil, deixando vulnerabilidades CVE críticas sem patch.', severity: 'tag-high' },
+    ]
+  },
+  {
+    id: 'iot',
+    name: 'Lâmpadas/Tomadas IoT',
+    emoji: '💡',
+    color: '#f57f17',
+    glow: 'rgba(245,127,23,0.5)',
+    riskLevel: 'MÉDIO',
+    riskColor: 'tag-medium',
+    tags: ['Médio', 'Botnet'],
+    weaknesses: [
+      { icon: '🤖', title: 'Alvo de Recrutamento para Botnets', desc: 'Dispositivos com recursos limitados sem EDR são vetores ideais de botnets (Mirai, Mozi). Podem atacar terceiros sem seu conhecimento.', severity: 'tag-critical' },
+      { icon: '🔐', title: 'Sem Criptografia em Protocolos', desc: 'Comunicação via HTTP puro ou MQTT sem TLS permite interceptação e modificação de comandos em ataques Man-in-the-Middle.', severity: 'tag-high' },
+      { icon: '🏭', title: 'Firmware Sem Capacidade de Update', desc: 'Muitos dispositivos baratos não possuem mecanismo de atualização. Uma vulnerabilidade descoberta = dispositivo comprometido para sempre.', severity: 'tag-high' },
+      { icon: '📋', title: 'Sem Isolamento de Rede', desc: 'Na mesma rede Wi-Fi que computadores e celulares, um IoT comprometido pode ser usado como pivô para atacar dispositivos mais valiosos.', severity: 'tag-high' },
+    ]
+  },
+];
+
+const attacks = [
+  {
+    id: 'botnet',
+    name: 'Ataque Botnet / DDoS',
+    icon: '🤖',
+    severity: 'badge-red',
+    severityLabel: 'CRÍTICO',
+    origin: { label: 'Hacker Remoto', desc: 'Operador de botnet via servidor C&C (Command & Control) na dark web' },
+    vector: { label: 'Dispositivo IoT Vulnerável', desc: 'Lâmpada/câmera com senha padrão infectada pelo malware Mirai' },
+    impact: { label: 'DDoS + Espionagem', desc: 'Sua conexão usada para derrubar servidores; dispositivos espionam sua rede interna' },
+    alerts: [
+      'Conta de internet estourou sem motivo aparente',
+      'Dispositivos IoT lentos ou reiniciando sozinhos',
+      'Tráfego intenso de rede às madrugadas',
+      'Novo firmware não reconhecido instalado',
+    ],
+    prevention: 'Segmente IoT em rede isolada; use senhas únicas; desative UPnP.'
+  },
+  {
+    id: 'mitm',
+    name: 'Man-in-the-Middle (MitM)',
+    icon: '🕵️',
+    severity: 'badge-amber',
+    severityLabel: 'ALTO',
+    origin: { label: 'Atacante na Rede Local', desc: 'Dispositivo malicioso conectado ao Wi-Fi doméstico (vizinho, visita)' },
+    vector: { label: 'ARP Spoofing + SSL Strip', desc: 'Envenenamento de tabela ARP; interceptação de tráfego HTTP e credenciais' },
+    impact: { label: 'Roubo de Credenciais', desc: 'Senhas, tokens de sessão e dados bancários capturados em tempo real' },
+    alerts: [
+      'Aviso de certificado SSL inválido em sites confiáveis',
+      'Redirecionamento inesperado para páginas de login',
+      'Lentidão inexplicável na conexão de um dispositivo específico',
+      'Histórico de acesso suspeito em contas online',
+    ],
+    prevention: 'Use WPA3; habilite HTTPS everywhere; ative firewall; use VPN na rede local.'
+  },
+  {
+    id: 'camera',
+    name: 'Sequestro de Câmeras',
+    icon: '📷',
+    severity: 'badge-red',
+    severityLabel: 'CRÍTICO',
+    origin: { label: 'Scanner Automatizado Global', desc: 'Bot varre internet (Shodan) por câmeras com credenciais padrão em portas abertas' },
+    vector: { label: 'Acesso Direto via Internet', desc: 'Login com admin/admin ou admin/12345 em interface web exposta publicamente' },
+    impact: { label: 'Invasão de Privacidade', desc: 'Transmissão ao vivo do interior da casa; imagens vendidas em fóruns ilegais' },
+    alerts: [
+      'LED de câmera piscando em horários incomuns',
+      'Uso de banda inesperadamente alto da câmera',
+      'Movimentação de câmera PTZ sem comando do usuário',
+      'Acesso ao app da câmera bloqueado (senha trocada)',
+    ],
+    prevention: 'Troque senhas imediatamente; desative acesso remoto; coloque câmera em VLAN isolada.'
+  },
+  {
+    id: 'voice',
+    name: 'Spoofing de Voz (Voice Jacking)',
+    icon: '🎙️',
+    severity: 'badge-amber',
+    severityLabel: 'ALTO',
+    origin: { label: 'Dispositivo Físico Próximo', desc: 'Alto-falante emitindo frequências ultrassônicas (inaudíveis) direcionado ao assistente' },
+    vector: { label: 'Dolphin Attack / Laser Attack', desc: 'Comandos de voz codificados em ultrassom ou laser modulado que microfone detecta mas humanos não' },
+    impact: { label: 'Controle Não Autorizado', desc: 'Abertura de fechaduras, compras online, acesso a dados pessoais, desativação de alarmes' },
+    alerts: [
+      'Histórico do assistente com comandos que você não deu',
+      'Compras realizadas sem sua ação',
+      'Dispositivos ativados em horário que você não estava em casa',
+      'Microfone ativo sem a wake word',
+    ],
+    prevention: 'Mute físico do microfone quando não em uso; revise histórico de comandos regularmente.'
+  },
+  {
+    id: 'ransomware',
+    name: 'Ransomware em Rede IoT',
+    icon: '🔐',
+    severity: 'badge-red',
+    severityLabel: 'CRÍTICO',
+    origin: { label: 'Email Phishing / USB Malicioso', desc: 'Malware entra por computador da rede doméstica e se propaga lateralmente' },
+    vector: { label: 'Movimento Lateral', desc: 'Sem segmentação de rede, malware salta de PC para NAS, câmeras e outros dispositivos' },
+    impact: { label: 'Bloqueio de Dispositivos', desc: 'Câmeras travadas, NAS criptografado, smart lock inacessível; resgate exigido em criptomoeda' },
+    alerts: [
+      'Dispositivos domésticos parando de responder simultaneamente',
+      'Mensagem de resgate aparecendo na Smart TV',
+      'Arquivos do NAS com extensão desconhecida (.locked, .enc)',
+      'Roteador redirecionando todo tráfego para IP suspeito',
+    ],
+    prevention: 'Faça backups regulares offline; segmente a rede; mantenha todos os patches atualizados.'
+  },
+];
+
+const defenses = [
+  { id: 'pwd',       label: 'Senhas Fortes e Únicas',           icon: '🔑', weight: 20, impact: 'Elimina 80% dos ataques de força bruta e credential stuffing nos dispositivos IoT.', tip: 'Use um gerenciador de senhas (Bitwarden, 1Password) para gerar e armazenar senhas com 20+ caracteres aleatórios.' },
+  { id: 'vlan',      label: 'Segmentação de Rede IoT (VLAN)',    icon: '🌐', weight: 18, impact: 'Isola dispositivos IoT em VLAN separada. Um dispositivo comprometido não acessa PCs, celulares ou NAS.', tip: 'Configure uma VLAN de "IoT" e outra de "Convidados" no seu roteador. Nunca conecte IoT na mesma rede de trabalho.' },
+  { id: 'mfa',       label: 'Autenticação Multifator (MFA/2FA)', icon: '🛡️', weight: 15, impact: 'Mesmo que a senha vaze, 99.9% dos ataques automatizados são bloqueados pelo segundo fator.', tip: 'Use apps TOTP (Google Authenticator, Authy) em vez de SMS. SMS é vulnerável a SIM Swapping.' },
+  { id: 'firmware',  label: 'Atualizações Automáticas de Firmware', icon: '🔄', weight: 12, impact: 'Fecha janelas de vulnerabilidades conhecidas (CVEs) antes que atacantes possam explorá-las.', tip: 'Habilite atualizações automáticas em todos os dispositivos. Dispositivos sem suporte de atualização devem ser substituídos.' },
+  { id: 'upnp',      label: 'Desativar UPnP e WPS',              icon: '🚫', weight: 10, impact: 'UPnP abre portas automaticamente. WPS tem vulnerabilidade de PIN de 8 dígitos quebrável em horas.', tip: 'Desative UPnP e WPS no painel do roteador. Configure port forwarding manual apenas quando necessário.' },
+  { id: 'dns',       label: 'DNS Seguro (DoH/DoT) + Pi-hole',    icon: '🔍', weight: 8,  impact: 'Bloqueia domínios de C&C de botnets e phishing antes de qualquer conexão ser estabelecida.', tip: 'Configure Cloudflare (1.1.1.1) ou NextDNS com DoH. Pi-hole bloqueia rastreadores e anúncios maliciosos na rede.' },
+  { id: 'vpn',       label: 'VPN na Rede Doméstica',             icon: '🔐', weight: 7,  impact: 'Criptografa todo o tráfego saindo da rede doméstica, dificultando espionagem por ISP ou intermediários.', tip: 'Configure WireGuard ou OpenVPN no próprio roteador ou em um Raspberry Pi para proteger toda a rede.' },
+  { id: 'monitor',   label: 'Monitoramento de Rede (IDS)',        icon: '👁️', weight: 5,  impact: 'Detecta comportamentos anômalos: dispositivo IoT tentando acessar IPs externos suspeitos = sinal de botnet.', tip: 'Suricata ou Snort no pfSense/OPNsense. Ou use Firewalla para solução plug-and-play.' },
+  { id: 'backup',    label: 'Backup Offline Regular (3-2-1)',     icon: '💾', weight: 5,  impact: 'Neutraliza ransomware: se seus dados estiverem em backup offline, não há motivo para pagar resgate.', tip: 'Regra 3-2-1: 3 cópias, 2 mídias diferentes, 1 cópia offsite (nuvem cifrada ou HD externo fora de casa).' },
+];
+
+const tips = [
+  'Comece pelo mais crítico: troque todas as senhas padrão imediatamente.',
+  'Sua rede IoT deve ser uma ilha — sem comunicação com seus dispositivos pessoais.',
+  'MFA é a defesa mais eficiente por custo-benefício. Ative em todos os serviços críticos.',
+  'Dispositivos IoT baratos sem atualização são bombas-relógio. Considere trocá-los.',
+  'Um IDS detecta o que o antivírus não vê: tráfego anômalo de dispositivos "mudos".',
+  'Backup offline é o único remédio contra ransomware. Faça hoje.',
+  'DNS seguro é gratuito e bloqueia ameaças antes do primeiro pacote ser enviado.',
+  'VPN não é só para privacidade — criptografa sua rede de ponta a ponta.',
+  'Com todas as defesas ativas, sua rede está entre as 5% mais seguras do Brasil!',
+];
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+let selectedDevice = null;
+let selectedAttack = null;
+let checkedItems = new Set();
+let currentScore = 0;
+
+// ═══════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════
+function showSection(id, btn) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════
+//  SECTION 1 — DEVICES
+// ═══════════════════════════════════════════════════
+function renderDevices() {
+  const grid = document.getElementById('deviceGrid');
+  grid.innerHTML = devices.map(d => `
+    <button class="device-btn" id="dev-${d.id}" onclick="selectDevice('${d.id}')">
+      <div class="device-icon" style="background: rgba(${hexToRgb(d.color)}, 0.15); border: 1px solid rgba(${hexToRgb(d.color)}, 0.5);">
+        <span style="font-size: 26px;">${d.emoji}</span>
+      </div>
+      <div style="font-size: 13px; font-weight: 700; color: var(--cyber-text);">${d.name}</div>
+      <span class="vuln-tag ${d.riskColor}" style="font-size: 10px;">⚠ ${d.riskLevel}</span>
+      <div style="font-size: 11px; color: var(--cyber-muted);">Clique para detalhes</div>
+    </button>
+  `).join('');
+}
+
+function selectDevice(id) {
+  if (selectedDevice === id) {
+    selectedDevice = null;
+    document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('vulnPanel').style.display = 'none';
+    return;
+  }
+  selectedDevice = id;
+  document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('dev-' + id).classList.add('selected');
+  renderVulnPanel(id);
+}
+
+function renderVulnPanel(id) {
+  const d = devices.find(x => x.id === id);
+  const panel = document.getElementById('vulnPanel');
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="vuln-card">
+      <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="font-size: 36px;">${d.emoji}</div>
+        <div>
+          <div style="font-size: 18px; font-weight: 800; color: var(--cyber-text);">${d.name}</div>
+          <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+            ${d.tags.map(t => `<span class="vuln-tag ${d.riskColor}">${t}</span>`).join('')}
+          </div>
+        </div>
+        <div style="margin-left: auto;">
+          <div style="font-size: 11px; color: var(--cyber-muted); text-align: right;">NÍVEL DE RISCO</div>
+          <div style="font-size: 20px; font-weight: 800; color: ${d.riskLevel === 'CRÍTICO' ? 'var(--cyber-red)' : d.riskLevel === 'ALTO' ? 'var(--cyber-amber)' : 'var(--cyber-cyan)'};">${d.riskLevel}</div>
+        </div>
+      </div>
+      <div style="font-size: 11px; color: var(--cyber-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 14px;">VULNERABILIDADES IDENTIFICADAS</div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+        ${d.weaknesses.map(w => `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--cyber-border); border-radius: 10px; padding: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">${w.icon}</span>
+              <div>
+                <div style="font-size: 13px; font-weight: 700; color: var(--cyber-text);">${w.title}</div>
+                <span class="vuln-tag ${w.severity}" style="font-size: 10px; padding: 2px 8px;">${w.severity === 'tag-critical' ? '🔴 Crítico' : w.severity === 'tag-high' ? '🟡 Alto' : '🔵 Médio'}</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--cyber-muted); margin: 0; line-height: 1.6;">${w.desc}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ═══════════════════════════════════════════════════
+//  SECTION 2 — ATTACKS
+// ═══════════════════════════════════════════════════
+function renderAttacks() {
+  const list = document.getElementById('attackList');
+  list.innerHTML = attacks.map(a => `
+    <button class="attack-btn" id="atk-${a.id}" onclick="selectAttack('${a.id}')">
+      <div class="attack-icon" style="width:40px; height:40px; border-radius:10px; background:rgba(255,171,0,0.08); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; transition:background 0.25s;">${a.icon}</div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:13px; font-weight:700; color:var(--cyber-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${a.name}</div>
+        <span class="badge ${a.severity}" style="font-size:10px; margin-top:4px;">${a.severityLabel}</span>
+      </div>
+    </button>
+  `).join('');
+
+  // Auto-select first
+  selectAttack(attacks[0].id);
+}
+
+function selectAttack(id) {
+  selectedAttack = id;
+  document.querySelectorAll('.attack-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('atk-' + id).classList.add('selected');
+  renderAttackDetail(id);
+}
+
+function renderAttackDetail(id) {
+  const a = attacks.find(x => x.id === id);
+  const panel = document.getElementById('attackDetail');
+  panel.innerHTML = `
+    <div class="card" style="padding: 20px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+        <span style="font-size: 32px;">${a.icon}</span>
+        <div>
+          <div style="font-size: 17px; font-weight: 800; color: var(--cyber-text);">${a.name}</div>
+          <span class="badge ${a.severity}">${a.severityLabel}</span>
+        </div>
+      </div>
+      <div style="font-size: 11px; color: var(--cyber-muted); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 12px;">FLUXO DO ATAQUE</div>
+      <div class="attack-flow flow-animate" style="display: flex; align-items: stretch; gap: 4px; flex-wrap: wrap;">
+        <div class="flow-node" style="border-left: 3px solid var(--cyber-red);">
+          <div style="font-size: 10px; color: var(--cyber-muted); margin-bottom: 6px;">① ORIGEM</div>
+          <div style="font-size: 13px; font-weight: 700; color: var(--cyber-red);">${a.origin.label}</div>
+          <div style="font-size: 11px; color: var(--cyber-muted); margin-top: 6px; line-height: 1.5;">${a.origin.desc}</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-left: 3px solid var(--cyber-amber);">
+          <div style="font-size: 10px; color: var(--cyber-muted); margin-bottom: 6px;">② VETOR</div>
+          <div style="font-size: 13px; font-weight: 700; color: var(--cyber-amber);">${a.vector.label}</div>
+          <div style="font-size: 11px; color: var(--cyber-muted); margin-top: 6px; line-height: 1.5;">${a.vector.desc}</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-left: 3px solid var(--cyber-cyan);">
+          <div style="font-size: 10px; color: var(--cyber-muted); margin-bottom: 6px;">③ IMPACTO</div>
+          <div style="font-size: 13px; font-weight: 700; color: var(--cyber-cyan);">${a.impact.label}</div>
+          <div style="font-size: 11px; color: var(--cyber-muted); margin-top: 6px; line-height: 1.5;">${a.impact.desc}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert-box">
+      <div style="font-size: 11px; color: var(--cyber-red); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 12px;">🚨 SINAIS DE ALERTA — SUA REDE FOI COMPROMETIDA?</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        ${a.alerts.map(al => `
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <div class="pulse-dot" style="background: var(--cyber-red); margin-top: 5px; flex-shrink: 0;"></div>
+            <span style="font-size: 13px; color: var(--cyber-text); line-height: 1.5;">${al}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div style="background: rgba(0,230,118,0.05); border: 1px solid rgba(0,230,118,0.3); border-radius: 10px; padding: 16px;">
+      <div style="font-size: 11px; color: var(--cyber-green); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 8px;">✅ COMO SE PROTEGER</div>
+      <div style="font-size: 13px; color: var(--cyber-text); line-height: 1.6;">${a.prevention}</div>
+    </div>
+  `;
+
+  // Trigger animation
+  const nodes = panel.querySelectorAll('.flow-animate .flow-node');
+  nodes.forEach((n, i) => {
+    n.style.opacity = '0';
+    n.style.transform = 'scale(0.9)';
+    setTimeout(() => {
+      n.style.transition = 'all 0.4s ease';
+      n.style.opacity = '1';
+      n.style.transform = 'scale(1)';
+    }, i * 200);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  SECTION 3 — DEFENSE
+// ═══════════════════════════════════════════════════
+function renderDefenses() {
+  const list = document.getElementById('checkList');
+  list.innerHTML = defenses.map(d => `
+    <div class="check-item" id="chk-${d.id}" onclick="toggleDefense('${d.id}')">
+      <div class="check-box" id="chkbox-${d.id}">
+        <svg id="chkmark-${d.id}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div style="font-size: 20px; flex-shrink: 0;">${d.icon}</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--cyber-text);">${d.label}</div>
+        <div style="font-size: 11px; color: var(--cyber-muted); margin-top: 3px; line-height: 1.4;">${d.impact.substring(0, 80)}…</div>
+      </div>
+      <div style="text-align: right; flex-shrink: 0;">
+        <div style="font-size: 11px; color: var(--cyber-muted);">+${d.weight}%</div>
+        <div style="width: 50px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; margin-top: 4px;">
+          <div style="width: ${d.weight * 5}%; height: 100%; background: var(--cyber-green); border-radius: 2px;"></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleDefense(id) {
+  const d = defenses.find(x => x.id === id);
+  const item = document.getElementById('chk-' + id);
+  const box = document.getElementById('chkbox-' + id);
+  const mark = document.getElementById('chkmark-' + id);
+
+  if (checkedItems.has(id)) {
+    checkedItems.delete(id);
+    item.classList.remove('checked');
+    mark.style.display = 'none';
+    showLastAction(`<span style="color: var(--cyber-red);">❌ Removido:</span> ${d.label}`, d.tip);
+  } else {
+    checkedItems.add(id);
+    item.classList.add('checked');
+    mark.style.display = 'block';
+    showLastAction(`<span style="color: var(--cyber-green);">✅ Ativado:</span> ${d.label}<br><span style="color: var(--cyber-muted); font-size: 11px;">${d.impact}</span>`, d.tip);
+  }
+  updateScore();
+}
+
+function showLastAction(html, tip) {
+  const card = document.getElementById('lastActionCard');
+  const text = document.getElementById('lastActionText');
+  const tipEl = document.getElementById('tipText');
+  card.style.display = 'block';
+  text.innerHTML = html;
+  if (tip) tipEl.textContent = tip;
+}
+
+function updateScore() {
+  let total = 0;
+  checkedItems.forEach(id => {
+    const d = defenses.find(x => x.id === id);
+    if (d) total += d.weight;
+  });
+  total = Math.min(total, 100);
+  currentScore = total;
+
+  // Update ring
+  const circumference = 364.42;
+  const offset = circumference - (total / 100) * circumference;
+  const circle = document.getElementById('scoreCircle');
+  const scoreNum = document.getElementById('scoreNum');
+  const scoreBar = document.getElementById('scoreBar');
+  const levelLabel = document.getElementById('scoreLevelLabel');
+  const scoreDesc = document.getElementById('scoreDesc');
+  const headerScore = document.getElementById('headerScore');
+
+  circle.style.strokeDashoffset = offset;
+  scoreNum.textContent = total + '%';
+  scoreBar.style.width = total + '%';
+  headerScore.textContent = 'Score: ' + total + '%';
+
+  // Colors & labels
+  let color, level, desc;
+  if (total < 20) {
+    color = 'var(--cyber-red)'; level = '🔴 CRÍTICO';
+    desc = 'Nenhuma medida ativa. Sua rede está totalmente exposta a ataques automatizados.';
+  } else if (total < 40) {
+    color = '#ff6d00'; level = '🟠 VULNERÁVEL';
+    desc = 'Proteção mínima. Um atacante básico pode comprometer seus dispositivos.';
+  } else if (total < 60) {
+    color = 'var(--cyber-amber)'; level = '🟡 MODERADO';
+    desc = 'Algumas defesas ativas. Ataques avançados ainda são uma ameaça real.';
+  } else if (total < 80) {
+    color = '#76ff03'; level = '🟢 BOM';
+    desc = 'Boa postura de segurança. Continue adicionando camadas de proteção.';
+  } else {
+    color = 'var(--cyber-green)'; level = '✨ EXCELENTE';
+    desc = 'Parabéns! Sua rede está entre as mais seguras do Brasil. Mantenha as atualizações em dia.';
+  }
+
+  circle.style.stroke = color;
+  scoreBar.style.background = color;
+  scoreNum.style.color = color;
+  levelLabel.style.color = color;
+  levelLabel.textContent = level;
+  scoreDesc.textContent = desc;
+  headerScore.style.color = color;
+
+  // Tip rotation
+  const tipIdx = Math.min(Math.floor(total / 12.5), tips.length - 1);
+  document.getElementById('tipText').textContent = tips[tipIdx];
+}
+
+// ═══════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+renderDevices();
+renderAttacks();
+renderDefenses();
+</script>
+</body>
+</html>
